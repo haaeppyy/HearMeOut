@@ -29,7 +29,14 @@ final class AgoraService: NSObject {
     private(set) var eventSubject = PassthroughSubject<AgoraEvent, Never>()
 
     private let engine: AgoraRtcEngineKit
-    private var audioTrackID = -1
+    private(set) var audioTrackID = -1
+
+    /// Dev telemetry: remote playback frames delivered by the delegate, and
+    /// TTS push attempts/failures. Read by the call screen's footnote.
+    private(set) var playbackFrameCount = 0
+    private(set) var pushAttempts = 0
+    private(set) var pushFailures = 0
+    private var lastFrameHeartbeatAt: CFAbsoluteTime = 0
 
     /// External-audio format. TTS renders at these settings; playback captions are
     /// requested in this same format so one format runs through the whole pipeline.
@@ -69,6 +76,14 @@ final class AgoraService: NSObject {
         engine.muteLocalAudioStream(muted)
     }
 
+    /// Ducks only the microphone capture signal while leaving channel
+    /// publication — including the custom TTS track — untouched. Used around
+    /// Type & Speak playback; `muteLocalAudioStream` would silence the custom
+    /// track too, so it must not be used there.
+    func setMicrophoneCaptureMuted(_ muted: Bool) {
+        engine.adjustRecordingSignalVolume(muted ? 0 : 100)
+    }
+
     func setSpeakerphone(_ on: Bool) {
         engine.setDefaultAudioRouteToSpeakerphone(on)
     }
@@ -94,6 +109,16 @@ final class AgoraService: NSObject {
     /// in Agora's expected 10 ms (160-sample) Int16 chunks.
     /// Returns `false` if the buffer isn't in the required format.
     func pushExternalAudioFrame(_ buffer: AVAudioPCMBuffer) -> Bool {
+        pushAttempts += 1
+        let success = pushExternalAudioFrameInternal(buffer)
+        if !success {
+            pushFailures += 1
+            print("[Agora] pushExternalAudioFrame failed (\(pushFailures) total)")
+        }
+        return success
+    }
+
+    private func pushExternalAudioFrameInternal(_ buffer: AVAudioPCMBuffer) -> Bool {
         guard
             audioTrackID >= 0,
             let channelData = buffer.floatChannelData,
@@ -144,6 +169,7 @@ final class AgoraService: NSObject {
         // Custom audio track used to inject TTS into the outgoing stream.
         if audioTrackID < 0 {
             audioTrackID = Int(engine.createCustomAudioTrack(.mixable, config: AgoraAudioTrackConfig()))
+            print("[Agora] custom audio track created: id=\(audioTrackID)")
         }
         setPlaybackCaptionsEnabled(false)
     }
@@ -240,6 +266,13 @@ extension AgoraService: AgoraAudioFrameDelegate {
     }
 
     func onPlaybackAudioFrame(_ frame: AgoraAudioFrame, channelId: String) -> Bool {
+        playbackFrameCount += 1
+        let now = CFAbsoluteTimeGetCurrent()
+        if now - lastFrameHeartbeatAt >= 5 {
+            lastFrameHeartbeatAt = now
+            print("[Agora] playback frames delivered: \(playbackFrameCount)")
+        }
+
         guard
             let buffer = frame.buffer,
             frame.samplesPerChannel > 0,

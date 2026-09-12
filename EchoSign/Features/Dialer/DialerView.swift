@@ -1,9 +1,16 @@
 import SwiftUI
 
-/// Outgoing-call entry point. The caller types the channel ID the callee agrees
-/// to use and presses Call. No accounts, no backend — both phones just join the
-/// same channel with the same ID (and the same temp token).
+/// Placeholder outgoing-call entry point — predates the real backend and
+/// still describes a no-backend/temp-token flow in comments that's no
+/// longer accurate. Left mostly as-is since real UI work is happening
+/// separately, but the actual call-start wiring below was pointed at a
+/// fully isolated `CallViewModel` that bypassed `AppCallCoordinator`
+/// entirely — meaning it had its own `CallKitManager` instance, separate
+/// from the one `PushKitManager` is registered against. That's fixed:
+/// outgoing calls now go through the shared coordinator so CallKit state
+/// stays consistent between outgoing and incoming calls.
 struct DialerView: View {
+    @EnvironmentObject private var callCoordinator: AppCallCoordinator
     @State private var channelID = Secrets.agoraChannelName
     @State private var callViewModel: CallViewModel?
     @State private var isPresentingCall = false
@@ -25,13 +32,12 @@ struct DialerView: View {
                     .multilineTextAlignment(.center)
             }
 
-            TextField("Channel ID", text: $channelID)
+            TextField("Contact ID", text: $channelID)
                 .textFieldStyle(.roundedBorder)
                 .font(.title3.weight(.medium))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 48)
-                .disabled(true)
-                .accessibilityLabel("Channel ID")
+                .accessibilityLabel("Contact ID")
                 .onSubmit { startCall() }
 
             Button(action: startCall) {
@@ -45,12 +51,6 @@ struct DialerView: View {
             .disabled(channelID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .opacity(channelID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.4 : 1)
 
-            Text("The person you call must enter the same channel ID on their device.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-
             Spacer()
             Spacer()
         }
@@ -60,26 +60,42 @@ struct DialerView: View {
                 CallView(viewModel: callViewModel)
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    EngineTestView()
+                } label: {
+                    Image(systemName: "waveform.badge.mic")
+                }
+                .accessibilityLabel("Engine test")
+            }
+        }
         .onChange(of: isPresentingCall) { _, presented in
             if !presented {
                 callViewModel = nil
             }
+        }
+        // Picks up whichever CallViewModel AppCallCoordinator creates —
+        // covers both outgoing calls started here and incoming calls
+        // answered from the native CallKit UI while this screen happens
+        // to be showing.
+        .onReceive(callCoordinator.$activeCallViewModel) { viewModel in
+            guard let viewModel else { return }
+            callViewModel = viewModel
+            isPresentingCall = true
         }
     }
 
     private func startCall() {
         let trimmed = channelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-
-        let viewModel = CallViewModel(channelID: trimmed)
-        callViewModel = viewModel
-        isPresentingCall = true
-        viewModel.startCall(channelID: trimmed)
+        _ = callCoordinator.startOutgoingCall(target: .contact(id: trimmed, displayName: trimmed))
     }
 }
 
 #Preview {
     NavigationStack {
         DialerView()
+            .environmentObject(AppCallCoordinator())
     }
 }

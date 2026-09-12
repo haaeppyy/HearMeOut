@@ -3,8 +3,10 @@ import Combine
 import Foundation
 
 /// Single source of truth for the call screen. Owns and coordinates
-/// `AgoraService`, `CallKitManager`, `CaptionService`, and `TTSService`,
-/// translating their events into the `@Published` state the UI binds to.
+/// `AgoraService`, `CallKitManager`, `CaptionService`, and the active
+/// `CallEngine`, translating their events into the `@Published` state
+/// the UI binds to.
+@MainActor
 final class CallViewModel: ObservableObject {
 
     @Published var callState: CallState = .idle
@@ -16,92 +18,178 @@ final class CallViewModel: ObservableObject {
 
     @Published private(set) var remoteUid: UInt?
 
+    // TypeAndSpeakController state — re-subscribed whenever the engine changes.
+    @Published var isSpeaking = false
+    @Published var highlightedRange: NSRange?
+    @Published var spokenText: String = ""
+
     let channelID: String
 
     private let agora: AgoraService
     private let callKit: CallKitManager
-    private let captions: CaptionService
-    private let tts: TTSService
+    let captionService: CaptionService
+    private let signaling: CallSignalingClient
+    private let rtmFactory: () -> AgoraRtmService
+
+    private var engine: CallEngine?
     private var cancellables = Set<AnyCancellable>()
 
     init(channelID: String) {
         self.channelID = channelID
-        agora = AgoraService(appID: Secrets.agoraAppID)
-        callKit = CallKitManager(agora: agora)
-        captions = CaptionService()
-        tts = TTSService(agora: agora)
+        self.agora = AgoraService(appID: Secrets.agoraAppID)
+        self.callKit = CallKitManager()
+        self.captionService = CaptionService()
+        self.signaling = CallSignalingClient(baseURL: Secrets.backendBaseURL) {
+            try await Secrets.currentUserAuthToken()
+        }
+        self.rtmFactory = { AgoraRtmService() }
+        wire()
+    }
+
+    /// Dependency-injected initializer for testing or when the full stack
+    /// is assembled externally.
+    init(
+        channelID: String,
+        agora: AgoraService,
+        callKit: CallKitManager,
+        captionService: CaptionService,
+        signaling: CallSignalingClient,
+        rtmFactory: @escaping () -> AgoraRtmService
+    ) {
+        self.channelID = channelID
+        self.agora = agora
+        self.callKit = callKit
+        self.captionService = captionService
+        self.signaling = signaling
+        self.rtmFactory = rtmFactory
         wire()
     }
 
     // MARK: - Public API
 
     func startCall(channelID: String) {
+        startCall(target: .contact(id: channelID, displayName: channelID))
+    }
+
+    func startCall(target: CallTarget) {
         guard callState == .idle else { return }
-        guard Secrets.hasRealCredentials else {
-            errorMessage = "Set your Agora App ID and temp token in Secrets.swift before testing."
-            callState = .failed("Missing Agora credentials")
-            return
+
+        let engine: CallEngine
+        switch target {
+        case .contact:
+            engine = VoIPCallEngine(
+                agora: agora,
+                callKit: callKit,
+                rtm: rtmFactory(),
+                signaling: signaling
+            )
         }
+        self.engine = engine
+        subscribe(to: engine)
+        subscribe(toTypeAndSpeak: engine.typeAndSpeak)
 
         callState = .connecting
-
-        // Best-effort: pre-request the microphone so Agora doesn't start muted.
-        // Never blocks setup — Agora prompts if permission is still pending.
         AVAudioApplication.requestRecordPermission { _ in }
 
-        agora.prepare()
-        agora.setPlaybackCaptionsEnabled(true)
-        // Join directly instead of waiting on CallKit: the call must work even if
-        // the OS rejects CallKit's start transaction (stale calls, resets, etc.).
-        agora.joinChannel(channelName: channelID, token: Secrets.agoraTempToken, uid: 0)
-        callKit.startCall(channelID: channelID)
+        Task {
+            do {
+                try await engine.start(target: target)
+            } catch {
+                errorMessage = error.localizedDescription
+                callState = .failed(error.localizedDescription)
+            }
+        }
     }
 
     func endCall() {
         guard callState != .idle, callState != .ended else { return }
-        tts.stop()
-        captions.stop()
-        callKit.endCall()
-        // `CXEndCallAction` → `AgoraService.leaveChannel` → `didLeaveChannel` → teardown,
-        // but make the UI respond immediately too.
-        teardown()
+        engine?.end()
+        captionService.stop()
+        callState = .ended
+    }
+
+    /// Answers an incoming call — called by `AppCallCoordinator` once the
+    /// user answers from the native CallKit UI. Skips straight to
+    /// `VoIPCallEngine.answerIncoming`, bypassing `startCall`'s
+    /// `signaling.createCall` since the caller already created the call;
+    /// this device just needs its own join token.
+    func answerIncomingCall(callId: String) {
+        guard callState == .idle else { return }
+
+        let engine = VoIPCallEngine(agora: agora, callKit: callKit, rtm: rtmFactory(), signaling: signaling)
+        self.engine = engine
+        subscribe(to: engine)
+        subscribe(toTypeAndSpeak: engine.typeAndSpeak)
+
+        callState = .connecting
+        AVAudioApplication.requestRecordPermission { _ in }
+
+        Task {
+            do {
+                try await engine.answerIncoming(callId: callId)
+            } catch {
+                errorMessage = error.localizedDescription
+                callState = .failed(error.localizedDescription)
+            }
+        }
     }
 
     func toggleMute() {
-        isMuted.toggle()
-        agora.muteLocalAudio(isMuted)
+        engine?.toggleMute()
+        // Read back rather than blindly flip — `isMuted` here previously
+        // tracked itself independently of what the engine actually did,
+        // which could silently drift (e.g. TTS ducking ending mid-call
+        // would leave this stale). The engine's MicDuckCoordinator is now
+        // the single source of truth.
+        isMuted = engine?.isMuted ?? isMuted
     }
 
     func toggleSpeaker() {
+        engine?.toggleSpeaker()
         isSpeakerOn.toggle()
-        agora.setSpeakerphone(isSpeakerOn)
     }
 
-    /// Type & Speak: synthesize `inputText` and inject it into the call audio.
+    /// Both engines now handle this identically — sender-side synthesis,
+    /// injected into the outgoing track.
     func sendTypedText() {
-        guard callState == .connected else { return }
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        tts.speak(text)
+        guard !text.isEmpty, callState == .connected else { return }
+        engine?.sendTypedText(text)
         inputText = ""
+    }
+
+    /// The pause/stop button the View exposes next to the highlighted text.
+    /// Authoritative — nothing already queued past this call reaches the
+    /// far end, regardless of which engine is active.
+    func stopSpeaking() {
+        engine?.stopSpeaking()
     }
 
     // MARK: - Wiring
 
     private func wire() {
-        agora.eventSubject
-            .receive(on: RunLoop.main)
-            .sink { [weak self] event in self?.handleAgoraEvent(event) }
-            .store(in: &cancellables)
+        agora.onPlaybackPCM = { [weak self] pointer, samplesPerChannel, channels in
+            self?.captionService.appendRemotePCM(
+                pointer: pointer,
+                samplesPerChannel: samplesPerChannel,
+                channels: channels
+            )
+        }
 
-        captions.$lines
+        captionService.$lines
             .receive(on: RunLoop.main)
             .sink { [weak self] lines in self?.captionLog = lines }
             .store(in: &cancellables)
 
-        captions.onError = { [weak self] message in self?.errorMessage = message }
-        tts.onError = { [weak self] message in self?.errorMessage = message }
-        callKit.onCallEndedByCallKit = { [weak self] in self?.teardown() }
+        captionService.onError = { [weak self] message in self?.errorMessage = message }
+        // Deliberately NOT wiring callKit.onCallEndedByCallKit here anymore
+        // — when this CallViewModel is constructed via AppCallCoordinator
+        // (the production path), the coordinator is the single owner of
+        // that closure, since it also has to notify PushKitManager for
+        // calls that were declined before ever reaching a CallViewModel.
+        // A standalone CallViewModel (tests, EngineTestView) won't get
+        // "CallKit-ended -> endCall()" for free — wire it manually in that
+        // context if needed.
         callKit.onCallKitError = { [weak self] message in
             guard let self else { return }
             if self.errorMessage == nil {
@@ -110,62 +198,44 @@ final class CallViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Service events
+    // MARK: - Engine subscriptions
 
-    private func handleAgoraEvent(_ event: AgoraEvent) {
-        switch event {
-        case .didJoinChannel:
-            callKit.reportConnected()
+    private func subscribe(toTypeAndSpeak controller: TypeAndSpeakController) {
+        controller.$isSpeaking.receive(on: DispatchQueue.main).assign(to: &$isSpeaking)
+        controller.$highlightedRange.receive(on: DispatchQueue.main).assign(to: &$highlightedRange)
+        controller.$currentText.receive(on: DispatchQueue.main).assign(to: &$spokenText)
+    }
 
-        case .remoteUserJoined(let uid):
-            remoteUid = uid
-            callState = .connected
-            startCaptionsIfNeeded()
-
-        case .remoteUserOffline:
-            // Prototype: the call ends when the far side leaves.
-            callKit.endCall()
-            teardown()
-
-        case .didLeaveChannel:
-            teardown()
-
-        case .connectionStateChanged(let state, let reason):
-            switch state {
-            case .failed:
-                print("[Echo] connection failed, reason raw \(reason.rawValue)")
-                callKit.reportCallFailed()
-                if errorMessage == nil {
-                    errorMessage = "Couldn't connect to the channel (check your channel ID and temp token)."
+    private func subscribe(to engine: CallEngine) {
+        cancellables.removeAll()
+        engine.eventPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] event in
+                guard let self else { return }
+                switch event {
+                case .connecting:
+                    self.callState = .connecting
+                case .connected, .remoteJoined:
+                    self.callState = .connected
+                    self.startCaptionsIfNeeded()
+                case .ended:
+                    self.callState = .ended
+                case .failed(let message):
+                    self.callState = .failed(message)
+                    self.errorMessage = message
                 }
-                callState = .failed("Couldn't connect to the channel")
-            default:
-                break
             }
-        }
+            .store(in: &cancellables)
     }
 
     // MARK: - Internals
 
-    /// Start remote captions only once the far side has joined, so the ~60-second
-    /// on-device recognition window isn't spent idle while dialing.
-    /// Best-effort: caption prerequisites failing must never knock out the call.
     private func startCaptionsIfNeeded() {
-        guard !captions.isListening else { return }
-        captions.setSource(.remote)
+        guard !captionService.isListening else { return }
+        captionService.setSource(.remote)
         Task {
-            guard await captions.prepare() else { return }
-            captions.start()
+            guard await captionService.prepare() else { return }
+            captionService.start()
         }
-    }
-
-    private func teardown() {
-        // `.failed` keeps the error alert visible until the user acknowledges it;
-        // don't let stray leave/reset events dismiss the screen underneath it.
-        if case .failed = callState { return }
-        guard callState != .ended, callState != .idle else { return }
-        tts.stop()
-        captions.stop()
-        callState = .ended
     }
 }

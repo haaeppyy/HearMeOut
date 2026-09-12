@@ -2,5 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Required for APNs (including VoIP pushes) to work at all — was
+         missing entirely. Must match your provisioning profile: "development"
+         for Xcode builds signed with a dev profile, "production" for
+         TestFlight/App Store. Getting this wrong causes pushes to silently
+         fail against the wrong APNs environment, same failure mode as the
+         backend's own APNS_ENVIRONMENT setting — both need to agree. -->
+    <key>aps-environment</key>
+    <string>development</string>
 </dict>
 </plist>

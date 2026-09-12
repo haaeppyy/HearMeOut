@@ -4,6 +4,8 @@ import SwiftUI
 @main
 struct EchoSignApp: App {
 
+    @StateObject private var callCoordinator = AppCallCoordinator()
+
     init() {
         configureAudioSession()
     }
@@ -12,6 +14,15 @@ struct EchoSignApp: App {
         WindowGroup {
             NavigationStack {
                 DialerView()
+                    .environmentObject(callCoordinator)
+            }
+            .onAppear {
+                // Registers for VoIP pushes once, at app launch — not tied
+                // to whether any particular call screen is on screen. This
+                // has to happen here, not inside CallViewModel, or an
+                // incoming call while the user is anywhere else in the app
+                // would never be caught at all.
+                callCoordinator.start()
             }
         }
     }

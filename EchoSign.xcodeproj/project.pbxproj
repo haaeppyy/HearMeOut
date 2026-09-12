@@ -7,37 +7,57 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02CB1F46461103948261D7B4 /* AgoraRtmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC1F620F61911977C7292085 /* AgoraRtmService.swift */; };
+		030D4C3AD02CF0696B7FFC64 /* CallEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 669F764A9BAA417CEDA9E2BA /* CallEngine.swift */; };
 		1080C518234A648E4C7DDEF8 /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFDDEFBD255BA8A5DFE18CB8 /* CallView.swift */; };
+		17161904551AE42517318E50 /* EngineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 394A836C6C7F4384E3FF01AC /* EngineTestView.swift */; };
 		2DBC1FFC019AD363C03F7D1E /* CallKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6336DA41C4F0D649D040E96A /* CallKitManager.swift */; };
 		358272E5BF579E204FAD6CF1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B74E6463AC1FFF494E52DFE8 /* Assets.xcassets */; };
 		3B32B246EA359CB415AAD7A7 /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 887C8C7D5B523117ABFB0638 /* TTSService.swift */; };
 		3B7268B68B71B29A67101318 /* RtcBasic in Frameworks */ = {isa = PBXBuildFile; productRef = 0B1DD5E1E328A2173F19461A /* RtcBasic */; };
+		4B24651E1A05476258563220 /* CallSignalingClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACA5289F543F916D148CD2E5 /* CallSignalingClient.swift */; };
 		5BEEDC3D208C9B7FB7737B2F /* DialerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B32587AE4177B4F81E89FB8 /* DialerView.swift */; };
+		5C899C3C620A5C1907B03092 /* TTSSinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5277AAC1D21CD9F0949CC2FA /* TTSSinks.swift */; };
+		62FEEEEDEAB0D8320DF34F54 /* MicDuckCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EF54CD23AD84585976A09B8 /* MicDuckCoordinator.swift */; };
 		720676F91DDAEEF16D2A01E2 /* CallState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5FE02EB1B891BE8A8F7535 /* CallState.swift */; };
+		7E6B9318F2962ADAAA3A2C86 /* EngineTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F143D85C87DE47F86948751B /* EngineTestViewModel.swift */; };
+		86F6956E30D0375E1792F111 /* VoIPCallEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F578976CABE973582FA8DF89 /* VoIPCallEngine.swift */; };
 		8F9CB1425C5543668A721143 /* PushKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA487B6FE2568C29BB968B3 /* PushKitManager.swift */; };
+		A1DE151F1755015773E16A2F /* TypeAndSpeakController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4E078562FD9BCE9180E5AD /* TypeAndSpeakController.swift */; };
 		A468CDBE9FEE288F24CF732E /* CaptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50035F355A1757A2B5C4506 /* CaptionService.swift */; };
 		C2EBF8EBA7D138EAF763A6E6 /* CallViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE578C76B106F2917A75CCA4 /* CallViewModel.swift */; };
 		D40E0B1D748197F5EB021205 /* AgoraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6337E90AF7E8122BB501947C /* AgoraService.swift */; };
 		E65AFC16DD287BD5956415F3 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = C211077BDC000CA5CA22D471 /* Secrets.swift */; };
+		E6AAE0B73A808187001DB95F /* AppCallCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4F5C9D2A526D79FA946574C /* AppCallCoordinator.swift */; };
 		F771A607485BEC8984F8BF1D /* EchoSignApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B247EEE419ED9FB0874D72 /* EchoSignApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1C4E078562FD9BCE9180E5AD /* TypeAndSpeakController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypeAndSpeakController.swift; sourceTree = "<group>"; };
 		1C5FE02EB1B891BE8A8F7535 /* CallState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallState.swift; sourceTree = "<group>"; };
 		2946DD9772408170332002C4 /* EchoSign.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EchoSign.entitlements; sourceTree = "<group>"; };
 		37D1118AA382DB338B07ED39 /* EchoSign.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EchoSign.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		394A836C6C7F4384E3FF01AC /* EngineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTestView.swift; sourceTree = "<group>"; };
 		4FA487B6FE2568C29BB968B3 /* PushKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushKitManager.swift; sourceTree = "<group>"; };
+		5277AAC1D21CD9F0949CC2FA /* TTSSinks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSSinks.swift; sourceTree = "<group>"; };
+		5EF54CD23AD84585976A09B8 /* MicDuckCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicDuckCoordinator.swift; sourceTree = "<group>"; };
 		6336DA41C4F0D649D040E96A /* CallKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitManager.swift; sourceTree = "<group>"; };
 		6337E90AF7E8122BB501947C /* AgoraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgoraService.swift; sourceTree = "<group>"; };
+		669F764A9BAA417CEDA9E2BA /* CallEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallEngine.swift; sourceTree = "<group>"; };
 		6B32587AE4177B4F81E89FB8 /* DialerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialerView.swift; sourceTree = "<group>"; };
 		887C8C7D5B523117ABFB0638 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		8B6541040E501ABB5ABBEDF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		ACA5289F543F916D148CD2E5 /* CallSignalingClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallSignalingClient.swift; sourceTree = "<group>"; };
 		AE578C76B106F2917A75CCA4 /* CallViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViewModel.swift; sourceTree = "<group>"; };
 		AFDDEFBD255BA8A5DFE18CB8 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
+		B4F5C9D2A526D79FA946574C /* AppCallCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCallCoordinator.swift; sourceTree = "<group>"; };
 		B74E6463AC1FFF494E52DFE8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C211077BDC000CA5CA22D471 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		C7B247EEE419ED9FB0874D72 /* EchoSignApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EchoSignApp.swift; sourceTree = "<group>"; };
+		DC1F620F61911977C7292085 /* AgoraRtmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgoraRtmService.swift; sourceTree = "<group>"; };
 		E50035F355A1757A2B5C4506 /* CaptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionService.swift; sourceTree = "<group>"; };
+		F143D85C87DE47F86948751B /* EngineTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTestViewModel.swift; sourceTree = "<group>"; };
+		F578976CABE973582FA8DF89 /* VoIPCallEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoIPCallEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				F157ACD352CE94099DCEBC03 /* Call */,
+				2481F45A7C57F844E2B1379F /* DevTools */,
 				55E4C81494E2830BB15DCDA9 /* Dialer */,
 			);
 			path = Features;
@@ -69,11 +90,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		2481F45A7C57F844E2B1379F /* DevTools */ = {
+			isa = PBXGroup;
+			children = (
+				394A836C6C7F4384E3FF01AC /* EngineTestView.swift */,
+				F143D85C87DE47F86948751B /* EngineTestViewModel.swift */,
+			);
+			path = DevTools;
+			sourceTree = "<group>";
+		};
 		28D218796F87950F745DCEC3 /* VoIP */ = {
 			isa = PBXGroup;
 			children = (
 				6337E90AF7E8122BB501947C /* AgoraService.swift */,
 				6336DA41C4F0D649D040E96A /* CallKitManager.swift */,
+				5EF54CD23AD84585976A09B8 /* MicDuckCoordinator.swift */,
 				4FA487B6FE2568C29BB968B3 /* PushKitManager.swift */,
 			);
 			path = VoIP;
@@ -119,6 +150,14 @@
 			);
 			sourceTree = "<group>";
 		};
+		68A83F38F14FBF6D91F7F268 /* Signaling */ = {
+			isa = PBXGroup;
+			children = (
+				ACA5289F543F916D148CD2E5 /* CallSignalingClient.swift */,
+			);
+			path = Signaling;
+			sourceTree = "<group>";
+		};
 		77BEF8D199070EA1E5210740 /* EchoSign */ = {
 			isa = PBXGroup;
 			children = (
@@ -137,10 +176,21 @@
 		784C2B5CC9100F28E9D62F2B /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				C621879B03FC286DF7488D11 /* CallEngine */,
+				95CE4654A9A7BB958389127C /* RTM */,
+				68A83F38F14FBF6D91F7F268 /* Signaling */,
 				9B38A806316984118250316E /* Speech */,
 				28D218796F87950F745DCEC3 /* VoIP */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		95CE4654A9A7BB958389127C /* RTM */ = {
+			isa = PBXGroup;
+			children = (
+				DC1F620F61911977C7292085 /* AgoraRtmService.swift */,
+			);
+			path = RTM;
 			sourceTree = "<group>";
 		};
 		9B38A806316984118250316E /* Speech */ = {
@@ -148,13 +198,25 @@
 			children = (
 				E50035F355A1757A2B5C4506 /* CaptionService.swift */,
 				887C8C7D5B523117ABFB0638 /* TTSService.swift */,
+				5277AAC1D21CD9F0949CC2FA /* TTSSinks.swift */,
+				1C4E078562FD9BCE9180E5AD /* TypeAndSpeakController.swift */,
 			);
 			path = Speech;
+			sourceTree = "<group>";
+		};
+		C621879B03FC286DF7488D11 /* CallEngine */ = {
+			isa = PBXGroup;
+			children = (
+				669F764A9BAA417CEDA9E2BA /* CallEngine.swift */,
+				F578976CABE973582FA8DF89 /* VoIPCallEngine.swift */,
+			);
+			path = CallEngine;
 			sourceTree = "<group>";
 		};
 		F157ACD352CE94099DCEBC03 /* Call */ = {
 			isa = PBXGroup;
 			children = (
+				B4F5C9D2A526D79FA946574C /* AppCallCoordinator.swift */,
 				AFDDEFBD255BA8A5DFE18CB8 /* CallView.swift */,
 				AE578C76B106F2917A75CCA4 /* CallViewModel.swift */,
 			);
@@ -237,17 +299,27 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				02CB1F46461103948261D7B4 /* AgoraRtmService.swift in Sources */,
 				D40E0B1D748197F5EB021205 /* AgoraService.swift in Sources */,
+				E6AAE0B73A808187001DB95F /* AppCallCoordinator.swift in Sources */,
+				030D4C3AD02CF0696B7FFC64 /* CallEngine.swift in Sources */,
 				2DBC1FFC019AD363C03F7D1E /* CallKitManager.swift in Sources */,
+				4B24651E1A05476258563220 /* CallSignalingClient.swift in Sources */,
 				720676F91DDAEEF16D2A01E2 /* CallState.swift in Sources */,
 				1080C518234A648E4C7DDEF8 /* CallView.swift in Sources */,
 				C2EBF8EBA7D138EAF763A6E6 /* CallViewModel.swift in Sources */,
 				A468CDBE9FEE288F24CF732E /* CaptionService.swift in Sources */,
 				5BEEDC3D208C9B7FB7737B2F /* DialerView.swift in Sources */,
 				F771A607485BEC8984F8BF1D /* EchoSignApp.swift in Sources */,
+				17161904551AE42517318E50 /* EngineTestView.swift in Sources */,
+				7E6B9318F2962ADAAA3A2C86 /* EngineTestViewModel.swift in Sources */,
+				62FEEEEDEAB0D8320DF34F54 /* MicDuckCoordinator.swift in Sources */,
 				8F9CB1425C5543668A721143 /* PushKitManager.swift in Sources */,
 				E65AFC16DD287BD5956415F3 /* Secrets.swift in Sources */,
 				3B32B246EA359CB415AAD7A7 /* TTSService.swift in Sources */,
+				5C899C3C620A5C1907B03092 /* TTSSinks.swift in Sources */,
+				A1DE151F1755015773E16A2F /* TypeAndSpeakController.swift in Sources */,
+				86F6956E30D0375E1792F111 /* VoIPCallEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

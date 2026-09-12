@@ -18,6 +18,10 @@ struct CallView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color(.systemGroupedBackground))
 
+            if viewModel.isSpeaking {
+                speakingPreview
+            }
+
             typeAndSpeak
 
             controlBar
@@ -154,6 +158,50 @@ struct CallView: View {
                             : "Transcribing: \(line.text.isEmpty ? "waiting for speech" : line.text)")
     }
 
+    // MARK: - Speaking preview (highlighted text)
+
+    private var speakingPreview: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Label("Speaking", systemImage: "waveform")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button {
+                    viewModel.stopSpeaking()
+                } label: {
+                    Label("Stop", systemImage: "stop.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.red, in: Capsule())
+                }
+                .accessibilityLabel("Stop speaking")
+            }
+
+            if !viewModel.spokenText.isEmpty {
+                highlightedTextView
+            }
+        }
+        .padding(12)
+        .background(Color(.tertiarySystemGroupedBackground))
+    }
+
+    private var highlightedTextView: some View {
+        let text = viewModel.spokenText
+        let range = viewModel.highlightedRange
+
+        return AttributedStringView(
+            text: text,
+            highlightedRange: range
+        )
+        .font(.system(size: 16, design: .rounded))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .lineLimit(3)
+        .accessibilityLabel("Currently speaking: \(text)")
+    }
+
     // MARK: - Type & Speak
 
     private var typeAndSpeak: some View {
@@ -172,10 +220,10 @@ struct CallView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Color.accentColor, in: Circle())
+                    .background(canSend ? Color.accentColor : Color.gray, in: Circle())
             }
             .disabled(!canSend)
-            .opacity(canSend ? 1 : 0.4)
+            .opacity(canSend ? 1 : 0.5)
             .accessibilityLabel("Send typed message as speech")
         }
         .padding(12)
@@ -185,7 +233,7 @@ struct CallView: View {
     private var canSend: Bool {
         !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && viewModel.callState == .connected
-            && !viewModel.isMuted
+            && !viewModel.isSpeaking
     }
 
     // MARK: - Controls
@@ -246,5 +294,32 @@ struct CallView: View {
     private var dismissOnAlertOK: Bool {
         if case .failed = viewModel.callState { return true }
         return false
+    }
+}
+
+// MARK: - Highlighted text view
+
+/// Renders text with word-level highlighting based on the current spoken range.
+private struct AttributedStringView: View {
+    let text: String
+    let highlightedRange: NSRange?
+
+    var body: some View {
+        if let range = highlightedRange, let nsString = text as NSString? {
+            let before = nsString.substring(to: range.location)
+            let highlighted = nsString.substring(with: range)
+            let afterStart = range.location + range.length
+            let after = afterStart < nsString.length
+                ? nsString.substring(from: afterStart)
+                : ""
+
+            return Text(before)
+                + Text(highlighted)
+                    .foregroundColor(.white)
+                    .fontWeight(.bold)
+                + Text(after)
+        } else {
+            return Text(text)
+        }
     }
 }

@@ -66,11 +66,31 @@ final class CaptionService: NSObject, ObservableObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
 
+    /// Identifies the live recognition task; events from superseded tasks
+    /// (cancelled during a restart) are dropped by ID instead of corrupting
+    /// state or stopping a fresh session.
+    private var currentTaskID: UUID?
+
     private var restartTimer: Timer?
     private let captureQueue = DispatchQueue(label: "echo.captions.capture", qos: .userInitiated)
 
     // On-device requests are capped at ~1 minute; restart just before then.
     private static let restartInterval: TimeInterval = 55
+
+    // MARK: - Helpers
+
+    private func onMain(_ work: @escaping () -> Void) {
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
+        }
+    }
+
+    /// All error reporting funnels through here so subscribers can assume main.
+    private func reportError(_ message: String) {
+        onMain { self.onError?(message) }
+    }
 
     // MARK: - Permissions & availability
 
@@ -91,7 +111,7 @@ final class CaptionService: NSObject, ObservableObject {
                 return false
             }
         case .denied, .restricted:
-            onError?("Speech recognition access is required for captions. You can enable it in Settings.")
+            reportError("Speech recognition access is required for captions. You can enable it in Settings.")
             return false
         @unknown default:
             return false
@@ -102,39 +122,59 @@ final class CaptionService: NSObject, ObservableObject {
             break
         case .undetermined:
             guard await AVAudioApplication.requestRecordPermission() else {
-                onError?("Microphone access is required for captions. You can enable it in Settings.")
+                reportError("Microphone access is required for captions. You can enable it in Settings.")
                 return false
             }
         case .denied:
-            onError?("Microphone access is required for captions. You can enable it in Settings.")
+            reportError("Microphone access is required for captions. You can enable it in Settings.")
             return false
         @unknown default:
             return false
         }
 
-        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US")), recognizer.isAvailable else {
-            onError?(CaptionError.recognizerUnavailable.localizedDescription)
-            return false
+        // `prepare` may resume off-main (authorization continuation); keep
+        // recognizer state and its delegate assignment on the main thread.
+        let recognizerAvailable: Bool = await MainActor.run {
+            guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US")), recognizer.isAvailable else {
+                self.reportError(CaptionError.recognizerUnavailable.localizedDescription)
+                return false
+            }
+            self.recognizer = recognizer
+            recognizer.delegate = self
+            print("[Captions] recognizer ready: en-US on-device=\(recognizer.supportsOnDeviceRecognition)")
+            return true
         }
-        self.recognizer = recognizer
-        recognizer.delegate = self
-        return true
+        return recognizerAvailable
     }
 
     // MARK: - Lifecycle
 
+    // Lifecycle entry points hop to main: `prepare()` can resume off-main, and
+    // a background-thread `start` would schedule the restart Timer on a runloop
+    // that never runs — captions would silently die at the ~60 s task limit.
+
     func setSource(_ newSource: Source) {
-        guard newSource != source else { return }
-        if isListening {
-            stop()
-            source = newSource
-            start()
-        } else {
-            source = newSource
+        onMain {
+            guard newSource != self.source else { return }
+            if self.isListening {
+                self.stopInternal()
+                self.source = newSource
+                self.startInternal()
+            } else {
+                self.source = newSource
+            }
         }
     }
 
     func start() {
+        onMain { self.startInternal() }
+    }
+
+    func stop() {
+        onMain { self.stopInternal() }
+    }
+
+    private func startInternal() {
         guard !isListening, recognizer != nil else { return }
         isListening = true
         lines.removeAll(keepingCapacity: true)
@@ -142,13 +182,14 @@ final class CaptionService: NSObject, ObservableObject {
         if source == .local {
             startLocalCapture()
         }
-        startRecognitionTask()
+        startRecognitionTaskInternal()
     }
 
-    func stop() {
+    private func stopInternal() {
         restartTimer?.invalidate()
         restartTimer = nil
 
+        currentTaskID = nil
         recognitionTask?.cancel()
         recognitionTask = nil
 
@@ -170,27 +211,46 @@ final class CaptionService: NSObject, ObservableObject {
     // MARK: - Audio ingestion
 
     /// Feed for the `.remote` source. Runs on Agora's audio thread; the heavy
-    /// work (wrapping + appending) is moved to the capture queue.
+    /// work (conversion + appending) is moved to the capture queue.
+    ///
+    /// Agora hands over 16 kHz Int16-interleaved frames; the recognizer is fed
+    /// standard Float32 buffers (the Apple-sample pattern) — some iOS builds
+    /// silently produce zero recognition results from Int16 input.
     func appendRemotePCM(pointer: UnsafeMutablePointer<Int16>, samplesPerChannel: Int, channels: Int) {
         guard source == .remote else { return }
 
-        let ch = channels > 0 ? channels : 1
-        let count = samplesPerChannel * ch
-        guard count > 0,
+        let channelCount = max(channels, 1)
+        let frames = samplesPerChannel
+        let totalSamples = frames * channelCount
+        guard frames > 0,
               let format = AVAudioFormat(
-                  commonFormat: .pcmFormatInt16,
-                  sampleRate: Double(AgoraService.sampleRate),
-                  channels: AVAudioChannelCount(ch),
-                  interleaved: true
+                  standardFormatWithSampleRate: Double(AgoraService.sampleRate),
+                  channels: AVAudioChannelCount(channelCount)
               )
         else { return }
 
-        let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count))
-        guard let buffer else { return }
-        buffer.frameLength = AVAudioFrameCount(count)
+        var floats = [Float](repeating: 0, count: totalSamples)
+        for i in 0..<totalSamples {
+            let sample = pointer[i]
+            floats[i] = max(-1.0, min(1.0, Float(sample) / 32767.0))
+        }
 
-        if let dst = buffer.int16ChannelData?[0] {
-            dst.update(from: pointer, count: count)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)) else { return }
+        buffer.frameLength = AVAudioFrameCount(frames)
+
+        if let channelData = buffer.floatChannelData {
+            if channelCount == 1 {
+                let dst = channelData[0]
+                for i in 0..<frames {
+                    dst[i] = floats[i]
+                }
+            } else {
+                for c in 0..<channelCount {
+                    for i in 0..<frames {
+                        channelData[c][i] = floats[i * channelCount + c]
+                    }
+                }
+            }
         }
 
         captureQueue.async { [weak self] in
@@ -209,52 +269,67 @@ final class CaptionService: NSObject, ObservableObject {
         do {
             try engine.start()
         } catch {
-            onError?("Couldn't start the microphone: \(error.localizedDescription)")
+            reportError("Couldn't start the microphone: \(error.localizedDescription)")
         }
     }
 
     // MARK: - Recognition task
 
-    private func startRecognitionTask() {
-        guard let recognizer else { return }
-
+    private func makeRecognitionRequest() -> SFSpeechAudioBufferRecognitionRequest {
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
         request.taskHint = .dictation
-        if recognizer.supportsOnDeviceRecognition {
+        if let recognizer, recognizer.supportsOnDeviceRecognition {
             // Keep audio on-device; also makes the ~1-minute session limit relevant.
             request.requiresOnDeviceRecognition = true
         }
-        recognitionRequest = request
+        return request
+    }
+
+    private func makeTask(with request: SFSpeechAudioBufferRecognitionRequest) -> SFSpeechRecognitionTask {
+        guard let recognizer else {
+            fatalError("makeTask called without a recognizer")
+        }
+
+        let taskID = UUID()
+        currentTaskID = taskID
 
         // Seed an in-flight line so partial results have somewhere to land.
         lines.append(CaptionLine(text: "", isFinal: false))
 
-        recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+        return recognizer.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
-            if let error {
-                DispatchQueue.main.async {
+            DispatchQueue.main.async {
+                // Events from a superseded task (cancelled during restart or
+                // stop) must not touch the current session's state.
+                guard self.currentTaskID == taskID else { return }
+
+                if let error {
                     // 216 = task canceled. We cancel tasks ourselves on restart,
                     // so treat it as a normal teardown, not a failure.
                     let nsError = error as NSError
                     if nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 216 {
                         return
                     }
-                    self.onError?(error.localizedDescription)
-                    self.stop()
+                    self.reportError(error.localizedDescription)
+                    self.stopInternal()
+                    return
                 }
-                return
-            }
-            guard let result else { return }
-            DispatchQueue.main.async {
+                guard let result else { return }
                 self.digest(result)
             }
         }
-
-        scheduleRestart()
     }
 
-    private func scheduleRestart() {
+    private func startRecognitionTaskInternal() {
+        guard recognizer != nil else { return }
+        let request = makeRecognitionRequest()
+        recognitionRequest = request
+        recognitionTask = makeTask(with: request)
+        scheduleRestartTimer()
+    }
+
+    private func scheduleRestartTimer() {
         restartTimer?.invalidate()
         restartTimer = Timer.scheduledTimer(withTimeInterval: Self.restartInterval, repeats: false) { [weak self] _ in
             guard let self else { return }
@@ -263,14 +338,23 @@ final class CaptionService: NSObject, ObservableObject {
     }
 
     /// Seamlessly end the current task and open a new one so 60+ second calls
-    /// keep transcribing. Capture taps/feeds keep targeting `recognitionRequest`.
+    /// keep transcribing. The new request is armed *before* the old task is
+    /// cancelled, so capture feeds never target a dead request and no audio is
+    /// lost at the boundary.
     private func restartRecognitionTask() {
-        guard isListening else { return }
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        startRecognitionTask()
+        guard isListening, recognizer != nil else { return }
+
+        let newRequest = makeRecognitionRequest()
+        let oldRequest = recognitionRequest
+        let oldTask = recognitionTask
+
+        recognitionRequest = newRequest
+        recognitionTask = makeTask(with: newRequest)
+
+        oldTask?.cancel()
+        oldRequest?.endAudio()
+
+        scheduleRestartTimer()
     }
 
     private func digest(_ result: SFSpeechRecognitionResult) {
@@ -298,8 +382,8 @@ extension CaptionService: SFSpeechRecognizerDelegate {
     func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
         DispatchQueue.main.async {
             if !available && self.isListening {
-                self.onError?("Speech recognition became unavailable.")
-                self.stop()
+                self.reportError("Speech recognition became unavailable.")
+                self.stopInternal()
             }
         }
     }
