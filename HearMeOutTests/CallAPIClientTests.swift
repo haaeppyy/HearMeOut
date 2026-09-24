@@ -214,18 +214,39 @@ struct CallAPIClientTests {
         })
 
         _ = try await client.fetchHistory()
-        #expect(box.last?.url?.absoluteString.contains("limit=50") == true)
+        #expect(box.last?.url?.path.hasSuffix("/call-history") == true)
+        #expect(box.last?.url?.query?.contains("limit=50") == true)
 
         _ = try await client.fetchHistory(limit: 500)
-        #expect(box.last?.url?.absoluteString.contains("limit=100") == true)
+        #expect(box.last?.url?.query?.contains("limit=100") == true)
 
         _ = try await client.fetchHistory(limit: 0)
-        #expect(box.last?.url?.absoluteString.contains("limit=1") == true)
+        #expect(box.last?.url?.query?.contains("limit=1") == true)
 
         _ = try await client.fetchHistory(before: Date(timeIntervalSince1970: 1_700_000_000))
-        let url = box.last?.url?.absoluteString ?? ""
-        #expect(url.contains("limit=50"))
-        #expect(url.contains("before="))
+        let url = box.last?.url
+        #expect(url?.query?.contains("limit=50") == true)
+        #expect(url?.query?.contains("before=") == true)
+        // Regression: the query must be a real query, not percent-encoded
+        // into the path (appendingPathComponent turned "?" into %3F, so
+        // every GET-with-query 404'd while curl stayed green).
+        #expect(url?.absoluteString.contains("%3F") == false)
+    }
+
+    @Test("lookupUser puts the phone in a real query, plus-sign encoded")
+    func lookupQuery() async throws {
+        let box = CaptureBox()
+        let client = client(handler: { request in
+            box.append(request)
+            return (200, ["id": "u-9"])
+        })
+        _ = try await client.lookupUser(phone: "+15551234567")
+        let url = box.last?.url
+        #expect(url?.path.hasSuffix("/users-lookup") == true)
+        #expect(url?.query?.contains("phone=") == true)
+        // "+" must survive as %2B — urlQueryAllowed hand-encoding dropped it.
+        #expect(url?.absoluteString.contains("%3F") == false)
+        #expect(url?.absoluteString.contains("+1555") == false)
     }
 
     @Test("push-token ok:false throws .server, ok:true succeeds silently")

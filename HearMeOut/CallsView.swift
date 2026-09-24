@@ -258,6 +258,7 @@ struct CallsView: View {
                         .frame(width: 46, height: 46)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Profile")
             }
         }
         .padding(.horizontal, 18)

@@ -109,8 +109,8 @@ final class CoordinatorURLProtocol: URLProtocol {
     /// private push/answer paths). It also runs auth.restore(), which clears
     /// the test flag — no persisted session exists in unit tests — so the
     /// flag is re-applied after, mirroring a signed-in launch.
-    private func activated(_ graph: Graph) -> Graph {
-        graph.coordinator.activate()
+    private func activated(_ graph: Graph) async -> Graph {
+        await graph.coordinator.activate()
         graph.auth.setAuthenticatedForTests(true)
         #expect(graph.pushKit.startCount == 1)
         return graph
@@ -197,7 +197,7 @@ final class CoordinatorURLProtocol: URLProtocol {
     func performOutgoingWarnsNotBlocks() async {
         // onStartCall is wired by activate() (like the CXStartCallAction
         // path) — startOutgoing alone only queues the pending context.
-        let graph = activated(makeGraph(handler: { _ in (200, startCallJSON(pushDelivered: false)) }))
+        let graph = await activated(makeGraph(handler: { _ in (200, startCallJSON(pushDelivered: false)) }))
         graph.coordinator.startOutgoing(to: linkedContact(), mode: "Text Mode")
         await waitUntil(graph.callKit.outgoingRequests.count == 1)
         let uuid = graph.active.callUUID
@@ -213,7 +213,7 @@ final class CoordinatorURLProtocol: URLProtocol {
 
     @Test("onStartCall API failure returns false, alerts, binds nothing")
     func performOutgoingFailure() async {
-        let graph = activated(makeGraph(handler: { _ in (429, ["error": "Too many"]) }))
+        let graph = await activated(makeGraph(handler: { _ in (429, ["error": "Too many"]) }))
         graph.coordinator.startOutgoing(to: linkedContact(), mode: "Audio Mode")
         await waitUntil(graph.callKit.outgoingRequests.count == 1)
         let uuid = graph.active.callUUID
@@ -228,7 +228,7 @@ final class CoordinatorURLProtocol: URLProtocol {
 
     @Test("push while live busy-declines via endCall, never reports, still completes")
     func busyIncomingDeclines() async {
-        let graph = activated(makeGraph(handler: { _ in (200, ["ok": true, "status": "missed"]) }))
+        let graph = await activated(makeGraph(handler: { _ in (200, ["ok": true, "status": "missed"]) }))
         graph.active.configureOutgoing(contactName: "Priya", contact: linkedContact())
         var completed = false
         graph.pushKit.simulateIncomingPush(FakePushKitManager.push()) { completed = true }
@@ -241,7 +241,7 @@ final class CoordinatorURLProtocol: URLProtocol {
 
     @Test("push while idle configures incoming and reports exactly once")
     func idleIncomingReports() async {
-        let graph = activated(makeGraph())
+        let graph = await activated(makeGraph())
         var completed = false
         let push = FakePushKitManager.push(callId: "call-7", channel: "ch-7", callerName: "Amar")
         graph.pushKit.simulateIncomingPush(push) { completed = true }
@@ -267,7 +267,7 @@ final class CoordinatorURLProtocol: URLProtocol {
             else { defaults.removeObject(forKey: "defaultCallingInterface") }
         }
 
-        let graph = activated(makeGraph(handler: { _ in (200, joinCallJSON()) }))
+        let graph = await activated(makeGraph(handler: { _ in (200, joinCallJSON()) }))
         var completed = false
         graph.pushKit.simulateIncomingPush(FakePushKitManager.push()) { completed = true }
         await waitUntil(completed)
@@ -286,7 +286,7 @@ final class CoordinatorURLProtocol: URLProtocol {
 
     @Test("answer API failure fails the call, alerts, and forgets the binding")
     func answerFailure() async {
-        let graph = activated(makeGraph(handler: { _ in (403, ["error": "Not your call"]) }))
+        let graph = await activated(makeGraph(handler: { _ in (403, ["error": "Not your call"]) }))
         var completed = false
         graph.pushKit.simulateIncomingPush(FakePushKitManager.push()) { completed = true }
         await waitUntil(completed)
@@ -302,7 +302,7 @@ final class CoordinatorURLProtocol: URLProtocol {
 
     @Test("double finish finalizes exactly once")
     func finalizeOnce() async {
-        let graph = activated(makeGraph(handler: { _ in (200, ["ok": true, "status": "ended"]) }))
+        let graph = await activated(makeGraph(handler: { _ in (200, ["ok": true, "status": "ended"]) }))
         var completed = false
         graph.pushKit.simulateIncomingPush(FakePushKitManager.push()) { completed = true }
         await waitUntil(completed)

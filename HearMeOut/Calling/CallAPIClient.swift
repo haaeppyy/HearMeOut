@@ -140,12 +140,11 @@ struct CallAPIClient {
 
     // GET /functions/v1/call-history?limit=&before=
     func fetchHistory(before: Date? = nil, limit: Int = 50) async throws -> [CallHistoryEntry] {
-        var query = "limit=\(max(1, min(limit, 100)))"
+        var query = ["limit": "\(max(1, min(limit, 100)))"]
         if let before {
-            let iso = ISO8601DateFormatter().string(from: before)
-            query += "&before=\(iso.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? iso)"
+            query["before"] = ISO8601DateFormatter().string(from: before)
         }
-        let response: CallHistoryResponse = try await send(path: "/functions/v1/call-history?\(query)", method: "GET", body: nil)
+        let response: CallHistoryResponse = try await send(path: "/functions/v1/call-history", method: "GET", body: nil, query: query)
         return response.calls
     }
 
@@ -157,16 +156,37 @@ struct CallAPIClient {
 
     // GET /functions/v1/users-lookup?phone=... -> { id, displayName } | 404
     func lookupUser(phone: String) async throws -> UserLookupResponse {
-        let encoded = phone.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? phone
-        return try await send(path: "/functions/v1/users-lookup?phone=\(encoded)", method: "GET", body: nil)
+        return try await send(path: "/functions/v1/users-lookup", method: "GET", body: nil, query: ["phone": phone])
     }
 
     // MARK: - transport
 
-    private func send<T: Decodable>(path: String, method: String, body: [String: String]?) async throws -> T {
+    private func send<T: Decodable>(path: String, method: String, body: [String: String]?, query: [String: String]? = nil) async throws -> T {
         guard AppConfig.isBackendConfigured else { throw CallAPIError.backendNotConfigured }
         let token = try await tokenProvider()
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        // Query items go through URLComponents: appendingPathComponent
+        // percent-encodes "?" into the path (users-lookup%3Fphone=...),
+        // which the gateway routes as a literal path → 404. This was a
+        // real shipped bug — every GET-with-query from the app 404'd while
+        // curl/contract tests (correct URLs) stayed green.
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent(path),
+            resolvingAgainstBaseURL: false
+        )
+        if let query, !query.isEmpty {
+            // Strict value encoding: URLComponents.queryItems leaves "+"
+            // raw, and servers decode "+" as space (form encoding) — a
+            // phone lookup for +1555... would search " 1555..." and 404.
+            // Verified against the live function: %2B hits, raw + misses.
+            var allowed = CharacterSet.urlQueryAllowed
+            allowed.remove(charactersIn: "+&=")
+            components?.percentEncodedQuery = query
+                .sorted(by: { $0.key < $1.key })
+                .map { "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: allowed) ?? "")" }
+                .joined(separator: "&")
+        }
+        guard let url = components?.url else { throw CallAPIError.badRequest("Couldn't build request URL.") }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue(anonKey, forHTTPHeaderField: "apikey")

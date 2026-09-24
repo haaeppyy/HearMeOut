@@ -103,6 +103,17 @@ final class SupabaseAuthManager: ObservableObject {
         try await client.auth.session.accessToken
     }
 
+    /// Test seam for BackendConfiguredUITests: adopt a pre-minted session
+    /// (tests seed users via REST and pass tokens through launch args)
+    /// instead of typing credentials into the simulator UI — SecureField
+    /// keystroke delivery is broken in this simulator/XCUITest runtime
+    /// (exactly one character lands per field lifetime), so auth-UI paths
+    /// stay device-manual per docs/device-matrix.md.
+    func adoptTestSession(accessToken: String, refreshToken: String) async throws {
+        let session = try await client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
+        apply(session: session)
+    }
+
     // MARK: - public.users sync (plain REST, no PostgREST builder dependency)
 
     private func syncProfile(name: String, phone: String) async throws {

@@ -94,6 +94,7 @@ struct ContactsView: View {
                             .overlay { Circle().stroke(.white.opacity(0.9), lineWidth: 0.8) }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Add contact")
                 }
             }
             .padding(.trailing, 18)
@@ -673,6 +674,7 @@ struct NewContactView: View {
                                 saveLinkedContact()
                             }
                             .disabled(phoneNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLinking)
+                            .accessibilityLabel("Save contact")
                         }
                     }
                     .padding(.horizontal, 30)

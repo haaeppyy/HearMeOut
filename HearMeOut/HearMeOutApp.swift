@@ -24,6 +24,22 @@ struct HearMeOutApp: App {
         if launchArgs.contains("--uitest-local-backend-off") {
             AppConfig.forceLocalOnly = true
         }
+        // Staging redirect for backend-configured UI tests (see
+        // AppConfig.stagingURLOverride). Value-form args parsed from argv.
+        let argv = CommandLine.arguments
+        if let i = argv.firstIndex(of: "--staging-url"), i + 1 < argv.count {
+            AppConfig.stagingURLOverride = URL(string: argv[i + 1])
+        }
+        if let i = argv.firstIndex(of: "--staging-key"), i + 1 < argv.count {
+            AppConfig.stagingAnonKeyOverride = argv[i + 1]
+        }
+        // Pre-minted test session (see AppConfig.stagingSessionAccessToken).
+        if let i = argv.firstIndex(of: "--staging-session"), i + 1 < argv.count {
+            AppConfig.stagingSessionAccessToken = argv[i + 1]
+        }
+        if let i = argv.firstIndex(of: "--staging-refresh"), i + 1 < argv.count {
+            AppConfig.stagingSessionRefreshToken = argv[i + 1]
+        }
         if launchArgs.contains("--fresh-install-wipe") {
             // Hermetic UI tests: reset persisted onboarding state before
             // @AppStorage/GRDB read it. NOTE: explicit overwrite, NOT
@@ -42,6 +58,18 @@ struct HearMeOutApp: App {
             ) {
                 try? FileManager.default.removeItem(at: dir.appendingPathComponent("hearmeout.sqlite"))
             }
+        }
+        // Pre-onboarded launch for backend-configured UI tests
+        // (--staging-onboarded <name> <phone>): skips the onboarding UI
+        // (whose password field can't be typed in this simulator/XCUITest
+        // runtime) while exercising every real path downstream — GRDB
+        // self-heals the profile row from these defaults in loadLocalData.
+        // Runs after --fresh-install-wipe so wipe+onboard compose.
+        if let i = argv.firstIndex(of: "--staging-onboarded"), i + 2 < argv.count {
+            let defaults = UserDefaults.standard
+            defaults.set(true, forKey: "hasCompletedOnboarding")
+            defaults.set(argv[i + 1], forKey: "userName")
+            defaults.set(argv[i + 2], forKey: "userPhoneNumber")
         }
         let auth = SupabaseAuthManager()
         let activeCall = ActiveCall()
@@ -83,7 +111,7 @@ struct HearMeOutApp: App {
                 // One-time backend wiring: restores the auth session, hooks
                 // up CallKit/PushKit/Agora callbacks and starts VoIP
                 // registration. Idempotent; safe to re-run on reappear.
-                coordinator.activate()
+                await coordinator.activate()
             }
         }
     }

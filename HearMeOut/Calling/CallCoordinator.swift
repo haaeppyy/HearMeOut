@@ -119,13 +119,32 @@ final class CallCoordinator: ObservableObject {
 
     /// One-time wiring. Called from the root view's .task (MainActor) right
     /// after the graph is built — NOT from init, which is nonisolated and
-    /// cannot touch other actors' state. Idempotent.
-    func activate() {
+    /// cannot touch other actors' state. Idempotent. Async so a pre-minted
+    /// test session is adopted before restore() runs (deterministic auth
+    /// state, no polling from tests).
+    func activate() async {
         guard !didActivate else { return }
         didActivate = true
+        await adoptStagingSessionIfNeeded()
         auth.restore()
         wireCallbacks()
         startPushKit()
+    }
+
+    /// Backend-configured UI tests pass a REST-minted session through
+    /// launch args; adopt it here so the whole launch starts signed-in.
+    /// Production never sets these (guarded by nil), so this is a no-op
+    /// outside tests.
+    private func adoptStagingSessionIfNeeded() async {
+        guard
+            let access = AppConfig.stagingSessionAccessToken,
+            let refresh = AppConfig.stagingSessionRefreshToken
+        else { return }
+        do {
+            try await auth.adoptTestSession(accessToken: access, refreshToken: refresh)
+        } catch {
+            print("staging session adoption failed: \(error)")
+        }
     }
 
     // MARK: - wiring
