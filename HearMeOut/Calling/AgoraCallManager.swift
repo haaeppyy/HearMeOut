@@ -52,10 +52,11 @@ final class AgoraCallManager: NSObject, ObservableObject {
 
     /// External-audio format. TTS renders at these settings; playback captions
     /// are requested in this same format so one format runs through the whole
-    /// speech pipeline.
-    static let sampleRate = 16000
+    /// speech pipeline. Single-sourced from AudioFramePipeline (which also
+    /// owns the conversion math) so the format can't drift between files.
+    static let sampleRate = AudioFramePipeline.sampleRate
     static let channelCount = 1
-    static let samplesPer10ms = sampleRate / 100 // 160
+    static let samplesPer10ms = AudioFramePipeline.samplesPer10ms
 
     /// Dev telemetry, audio-thread safe. Snapshot via the `telemetry()`
     /// method for UI; never touch @Published state from the audio thread.
@@ -220,31 +221,26 @@ final class AgoraCallManager: NSObject, ObservableObject {
 
         var int16 = [Int16](repeating: 0, count: frameLength)
         for i in 0..<frameLength {
-            int16[i] = Self.int16From(float: channelData[0][i])
+            int16[i] = AudioFramePipeline.int16From(float: channelData[0][i])
         }
 
-        var offset = 0
+        // Chunk ranges come from the pipeline (unit-tested); the pointer
+        // walk itself stays here on the audio thread — no per-chunk copies.
+        let ranges = AudioFramePipeline.chunkRanges(frameCount: frameLength, perChunk: Self.samplesPer10ms)
         int16.withUnsafeMutableBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
-            while offset < frameLength {
-                let count = min(Self.samplesPer10ms, frameLength - offset)
+            for range in ranges {
                 engine.pushExternalAudioFrameRawData(
-                    UnsafeMutableRawPointer(base.advanced(by: offset)),
-                    samples: count,
+                    UnsafeMutableRawPointer(base.advanced(by: range.lowerBound)),
+                    samples: range.count,
                     sampleRate: Self.sampleRate,
                     channels: Self.channelCount,
                     trackId: audioTrackID,
                     timestamp: 0
                 )
-                offset += count
             }
         }
         return true
-    }
-
-    private nonisolated static func int16From(float: Float) -> Int16 {
-        let clamped = max(-1.0, min(1.0, float))
-        return Int16((clamped * 32767.0).rounded())
     }
     #endif
 
@@ -466,39 +462,6 @@ extension AgoraCallManager: AgoraAudioFrameDelegate {
         let int16Pointer = buffer.assumingMemoryBound(to: Int16.self)
         onPlaybackPCM?(int16Pointer, Int(frame.samplesPerChannel), Int(frame.channels))
         return true
-    }
-}
-
-/// Lock-free telemetry safe to touch from the audio thread.
-private final class TelemetryBox: Sendable {
-    private let lock = NSLock()
-    private var frames = 0
-    private var attempts = 0
-    private var failures = 0
-
-    func noteFrame() -> Int {
-        lock.lock()
-        defer { lock.unlock() }
-        frames += 1
-        return frames
-    }
-
-    func noteAttempt() {
-        lock.lock()
-        defer { lock.unlock() }
-        attempts += 1
-    }
-
-    func noteFailure() {
-        lock.lock()
-        defer { lock.unlock() }
-        failures += 1
-    }
-
-    func snapshot() -> (playbackFrames: Int, pushAttempts: Int, pushFailures: Int) {
-        lock.lock()
-        defer { lock.unlock() }
-        return (frames, attempts, failures)
     }
 }
 #endif

@@ -23,9 +23,12 @@ final class CallCoordinator: ObservableObject {
     let auth: SupabaseAuthManager
     let api: CallAPIClient
     let active: ActiveCall
-    let callKit: CallKitManager
-    let pushKit: PushKitManager
-    let agora: AgoraCallManager
+    /// Protocol-typed (CallKitDriving / PushKitDriving / AgoraDriving) so
+    /// tests inject scriptable fakes; production passes the concrete
+    /// managers, which already conform. See the three *Driving.swift files.
+    let callKit: any CallKitDriving
+    let pushKit: any PushKitDriving
+    let agora: any AgoraDriving
 
     /// Speech plane (EchoSign port): live captions of the remote party +
     /// Type & Speak synthesis injected into the outgoing call audio.
@@ -71,26 +74,47 @@ final class CallCoordinator: ObservableObject {
 
     /// Nonisolated so HearMeOutApp.init can build the graph. No actor state
     /// is touched here — activate() does the wiring on the main actor.
-    nonisolated init(
+    /// Production entry: concrete managers + an api bound to auth's token.
+    nonisolated convenience init(
         auth: SupabaseAuthManager,
         active: ActiveCall,
         callKit: CallKitManager,
         pushKit: PushKitManager,
         agora: AgoraCallManager
     ) {
+        self.init(
+            auth: auth, active: active,
+            callKit: callKit as any CallKitDriving,
+            pushKit: pushKit as any PushKitDriving,
+            agora: agora as any AgoraDriving,
+            // Capture auth weakly: the client outlives nothing, but the closure
+            // escapes into URLSession tasks.
+            api: CallAPIClient(tokenProvider: { [weak auth] in
+                guard let auth else { throw CallAPIError.unauthorized }
+                return try await auth.accessToken()
+            })
+        )
+    }
+
+    /// Test entry (internal, visible via @testable): all collaborators
+    /// injected, so CallCoordinatorTests drives the real orchestration
+    /// against fakes + MockURLProtocol with zero system frameworks.
+    nonisolated init(
+        auth: SupabaseAuthManager,
+        active: ActiveCall,
+        callKit: any CallKitDriving,
+        pushKit: any PushKitDriving,
+        agora: any AgoraDriving,
+        api: CallAPIClient
+    ) {
         self.auth = auth
         self.active = active
         self.callKit = callKit
         self.pushKit = pushKit
         self.agora = agora
+        self.api = api
         self.duck = MicDuckCoordinator(agora: agora)
         self.typeAndSpeak = TypeAndSpeakController(sink: AgoraPushSink(agora: agora))
-        // Capture auth weakly: the client outlives nothing, but the closure
-        // escapes into URLSession tasks.
-        self.api = CallAPIClient(tokenProvider: { [weak auth] in
-            guard let auth else { throw CallAPIError.unauthorized }
-            return try await auth.accessToken()
-        })
     }
 
     /// One-time wiring. Called from the root view's .task (MainActor) right
@@ -151,7 +175,7 @@ final class CallCoordinator: ObservableObject {
         // Start remote captions once the far side joins, so the ~60-second
         // on-device recognition window isn't spent idle while dialing.
         // Best-effort: caption failures must never knock out the call.
-        agora.$remoteUserJoined
+        agora.remoteUserJoinedPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] joined in
                 guard joined else { return }
@@ -160,7 +184,7 @@ final class CallCoordinator: ObservableObject {
             .store(in: &cancellables)
         // Token changes arrive before/after auth in any order; registration
         // itself gates on configured + authenticated.
-        pushKit.$voipToken
+        pushKit.voipTokenPublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] token in
                 Task { @MainActor [weak self] in self?.registerPushTokenIfNeeded(token) }

@@ -15,11 +15,14 @@ import Foundation
 /// Ported from EchoSign's MicDuckCoordinator, repointed at AgoraCallManager.
 final class MicDuckCoordinator {
 
-    private weak var agora: AgoraCallManager?
+    /// Protocol-typed (not concrete AgoraCallManager) so CallCoordinatorTests
+    /// can drive the real coordinator logic against FakeAgoraCallManager.
+    /// Only the nonisolated mute setter is touched — safe from any thread.
+    private weak var agora: (any AgoraDriving)?
     private var manuallyMuted = false
     private var ttsDucking = false
 
-    init(agora: AgoraCallManager) {
+    init(agora: any AgoraDriving) {
         self.agora = agora
     }
 

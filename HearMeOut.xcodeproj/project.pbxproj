@@ -39,6 +39,10 @@
 		B017 /* EngineTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B123 /* EngineTestView.swift */; };
 		B018 /* EngineTestViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B124 /* EngineTestViewModel.swift */; };
 		B019 /* HistoryMerger.swift in Sources */ = {isa = PBXBuildFile; fileRef = B125 /* HistoryMerger.swift */; };
+		B020 /* CallKitDriving.swift in Sources */ = {isa = PBXBuildFile; fileRef = B126 /* CallKitDriving.swift */; };
+		B021 /* AgoraDriving.swift in Sources */ = {isa = PBXBuildFile; fileRef = B127 /* AgoraDriving.swift */; };
+		B022 /* PushKitDriving.swift in Sources */ = {isa = PBXBuildFile; fileRef = B128 /* PushKitDriving.swift */; };
+		B023 /* AudioFramePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B129 /* AudioFramePipeline.swift */; };
 		C009 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = A901 /* GRDB */; };
 		D001 /* HistoryMergerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D110 /* HistoryMergerTests.swift */; };
 		D002 /* CallAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D111 /* CallAPIClientTests.swift */; };
@@ -92,6 +96,10 @@
 		B123 /* EngineTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTestView.swift; sourceTree = "<group>"; };
 		B124 /* EngineTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineTestViewModel.swift; sourceTree = "<group>"; };
 		B125 /* HistoryMerger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryMerger.swift; sourceTree = "<group>"; };
+		B126 /* CallKitDriving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitDriving.swift; sourceTree = "<group>"; };
+		B127 /* AgoraDriving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgoraDriving.swift; sourceTree = "<group>"; };
+		B128 /* PushKitDriving.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushKitDriving.swift; sourceTree = "<group>"; };
+		B129 /* AudioFramePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFramePipeline.swift; sourceTree = "<group>"; };
 		D110 /* HistoryMergerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryMergerTests.swift; sourceTree = "<group>"; };
 		D111 /* CallAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallAPIClientTests.swift; sourceTree = "<group>"; };
 		D112 /* PhoneNormalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneNormalizationTests.swift; sourceTree = "<group>"; };
@@ -231,6 +239,10 @@
 				B123 /* EngineTestView.swift */,
 				B124 /* EngineTestViewModel.swift */,
 				B125 /* HistoryMerger.swift */,
+				B126 /* CallKitDriving.swift */,
+				B127 /* AgoraDriving.swift */,
+				B128 /* PushKitDriving.swift */,
+				B129 /* AudioFramePipeline.swift */,
 			);
 			path = Calling;
 			sourceTree = "<group>";
@@ -447,6 +459,10 @@
 				B017 /* EngineTestView.swift in Sources */,
 				B018 /* EngineTestViewModel.swift in Sources */,
 				B019 /* HistoryMerger.swift in Sources */,
+				B020 /* CallKitDriving.swift in Sources */,
+				B021 /* AgoraDriving.swift in Sources */,
+				B022 /* PushKitDriving.swift in Sources */,
+				B023 /* AudioFramePipeline.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

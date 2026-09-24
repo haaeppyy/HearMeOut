@@ -171,8 +171,8 @@ struct CallsView: View {
                 recordingEnabled: false,
                 endCall: { _ in coordinator.endViaSystem() },
                 activeCall: coordinator.active,
-                agora: coordinator.agora,
-                callKit: coordinator.callKit,
+                agora: (coordinator.agora as? AgoraCallManager) ?? AgoraCallManager(),
+                callKit: coordinator.callKit as? CallKitManager,
                 onEndViaSystem: { coordinator.endViaSystem() },
                 duck: coordinator.duck
             )

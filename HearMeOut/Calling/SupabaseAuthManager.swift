@@ -17,6 +17,13 @@ final class SupabaseAuthManager: ObservableObject {
     @Published private(set) var isAuthenticated = false
     @Published private(set) var displayName: String?
 
+    #if DEBUG
+    /// Test seam for CallCoordinatorTests: unit tests can't go through a
+    /// real network sign-in, so they flip the flag directly. Production
+    /// code paths (apply/clear) are the only other writers.
+    func setAuthenticatedForTests(_ value: Bool) { isAuthenticated = value }
+    #endif
+
     let client: SupabaseClient
 
     /// Nonisolated so the app graph can be built in HearMeOutApp.init.

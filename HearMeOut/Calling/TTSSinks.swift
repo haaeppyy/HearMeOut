@@ -40,7 +40,10 @@ protocol TTSAudioSink: AnyObject {
 /// custom audio track while the microphone is muted.
 final class AgoraPushSink: TTSAudioSink {
 
-    private weak var agora: AgoraCallManager?
+    /// Protocol-typed (not concrete AgoraCallManager) so tests can drive
+    /// the real sink against a fake engine. Only the nonisolated
+    /// push/duck members are touched — safe from TTS render queues.
+    private weak var agora: (any AgoraDriving)?
     var onFramesPushed: ((AVAudioFrameCount) -> Void)?
 
     /// Agora's custom track and playback-caption pipeline run at 16 kHz mono.
@@ -49,7 +52,7 @@ final class AgoraPushSink: TTSAudioSink {
         channels: 1
     )!
 
-    init(agora: AgoraCallManager) {
+    init(agora: any AgoraDriving) {
         self.agora = agora
     }
 

@@ -45,9 +45,14 @@ struct TextCallView: View {
                     showTextMode: { showsAudioInterface = false },
                     endCall: { _ in showsSavePrompt = true },
                     // Same live session — toggling UI must not rejoin media.
+                    // The coordinator holds these as protocol existentials
+                    // (see *Driving.swift); the views still take the concrete
+                    // managers for @ObservedObject. Production graphs always
+                    // build the coordinator from concretes, so these casts
+                    // succeed — the fallbacks never fire.
                     activeCall: coordinator.active,
-                    agora: coordinator.agora,
-                    callKit: coordinator.callKit,
+                    agora: (coordinator.agora as? AgoraCallManager) ?? AgoraCallManager(),
+                    callKit: coordinator.callKit as? CallKitManager,
                     duck: coordinator.duck
                 )
                 .blur(radius: showsSavePrompt ? 5 : 0)

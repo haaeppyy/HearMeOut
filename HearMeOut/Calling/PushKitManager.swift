@@ -39,6 +39,27 @@ final class PushKitManager: NSObject, ObservableObject {
         registry.desiredPushTypes = [.voIP]
         self.registry = registry
     }
+
+    /// Pure payload parsing, extracted for PushPayloadParsingTests — no
+    /// PKPushPayload needed, tests pass dictionary literals directly.
+    /// Exact keys from src/services/push.ts's APNs body (top level,
+    /// alongside aps.content-available).
+    static func parse(_ d: [AnyHashable: Any]) -> IncomingPush? {
+        guard
+            let callId = d["callId"] as? String,
+            let channelName = d["channelName"] as? String,
+            let callerId = d["callerId"] as? String
+        else {
+            return nil
+        }
+        let callerName = (d["callerName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return IncomingPush(
+            callId: callId,
+            channelName: channelName,
+            callerId: callerId,
+            callerName: callerName?.isEmpty == false ? callerName! : "Unknown caller"
+        )
+    }
 }
 
 extension PushKitManager: PKPushRegistryDelegate {
@@ -60,21 +81,10 @@ extension PushKitManager: PKPushRegistryDelegate {
         // Exact keys from src/services/push.ts's APNs body (top level,
         // alongside aps.content-available).
         let d = payload.dictionaryPayload
-        guard
-            let callId = d["callId"] as? String,
-            let channelName = d["channelName"] as? String,
-            let callerId = d["callerId"] as? String
-        else {
+        guard let push = Self.parse(d) else {
             completion()
             return
         }
-        let callerName = (d["callerName"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let push = IncomingPush(
-            callId: callId,
-            channelName: channelName,
-            callerId: callerId,
-            callerName: callerName?.isEmpty == false ? callerName! : "Unknown caller"
-        )
         guard let handler = onIncomingPush else {
             completion()
             return

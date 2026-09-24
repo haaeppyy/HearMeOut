@@ -232,26 +232,19 @@ final class CaptionService: NSObject, ObservableObject {
               )
         else { return }
 
-        var floats = [Float](repeating: 0, count: totalSamples)
-        for i in 0..<totalSamples {
-            let sample = pointer[i]
-            floats[i] = max(-1.0, min(1.0, Float(sample) / 32767.0))
-        }
+        // Conversion + deinterleave live in AudioFramePipeline (unit-tested);
+        // this path only moves the planar result into the recognizer buffer.
+        let planar = AudioFramePipeline.deinterleaveToPlanar(
+            pointer: pointer, frames: frames, channelCount: channelCount
+        )
 
         guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)) else { return }
         buffer.frameLength = AVAudioFrameCount(frames)
 
         if let channelData = buffer.floatChannelData {
-            if channelCount == 1 {
-                let dst = channelData[0]
+            for c in 0..<channelCount {
                 for i in 0..<frames {
-                    dst[i] = floats[i]
-                }
-            } else {
-                for c in 0..<channelCount {
-                    for i in 0..<frames {
-                        channelData[c][i] = floats[i * channelCount + c]
-                    }
+                    channelData[c][i] = planar[c][i]
                 }
             }
         }
