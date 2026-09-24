@@ -51,6 +51,13 @@
 		D005 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D114 /* RepositoryTests.swift */; };
 		D006 /* ActiveCallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D115 /* ActiveCallTests.swift */; };
 		D007 /* MigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D116 /* MigrationTests.swift */; };
+		D008 /* FakeCallKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D117 /* FakeCallKitManager.swift */; };
+		D009 /* FakeAgoraCallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D118 /* FakeAgoraCallManager.swift */; };
+		D010 /* FakePushKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D119 /* FakePushKitManager.swift */; };
+		D011 /* CallCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D120 /* CallCoordinatorTests.swift */; };
+		D012 /* AudioFramePipelineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D121 /* AudioFramePipelineTests.swift */; };
+		D013 /* PushPayloadParsingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D122 /* PushPayloadParsingTests.swift */; };
+		D014 /* TelemetryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D123 /* TelemetryTests.swift */; };
 		E001 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E110 /* OnboardingTests.swift */; };
 		E002 /* TabsAndKeypadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E111 /* TabsAndKeypadTests.swift */; };
 /* End PBXBuildFile section */
@@ -107,6 +114,13 @@
 		D114 /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
 		D115 /* ActiveCallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCallTests.swift; sourceTree = "<group>"; };
 		D116 /* MigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTests.swift; sourceTree = "<group>"; };
+		D117 /* FakeCallKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fakes/FakeCallKitManager.swift; sourceTree = "<group>"; };
+		D118 /* FakeAgoraCallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fakes/FakeAgoraCallManager.swift; sourceTree = "<group>"; };
+		D119 /* FakePushKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fakes/FakePushKitManager.swift; sourceTree = "<group>"; };
+		D120 /* CallCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallCoordinatorTests.swift; sourceTree = "<group>"; };
+		D121 /* AudioFramePipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFramePipelineTests.swift; sourceTree = "<group>"; };
+		D122 /* PushPayloadParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushPayloadParsingTests.swift; sourceTree = "<group>"; };
+		D123 /* TelemetryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TelemetryTests.swift; sourceTree = "<group>"; };
 		E110 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		E111 /* TabsAndKeypadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsAndKeypadTests.swift; sourceTree = "<group>"; };
 		C100 /* HearMeOutTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HearMeOutTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -195,6 +209,13 @@
 				D114 /* RepositoryTests.swift */,
 				D115 /* ActiveCallTests.swift */,
 				D116 /* MigrationTests.swift */,
+				D117 /* FakeCallKitManager.swift */,
+				D118 /* FakeAgoraCallManager.swift */,
+				D119 /* FakePushKitManager.swift */,
+				D120 /* CallCoordinatorTests.swift */,
+				D121 /* AudioFramePipelineTests.swift */,
+				D122 /* PushPayloadParsingTests.swift */,
+				D123 /* TelemetryTests.swift */,
 			);
 			path = HearMeOutTests;
 			sourceTree = "<group>";
@@ -477,6 +498,13 @@
 				D005 /* RepositoryTests.swift in Sources */,
 				D006 /* ActiveCallTests.swift in Sources */,
 				D007 /* MigrationTests.swift in Sources */,
+				D008 /* FakeCallKitManager.swift in Sources */,
+				D009 /* FakeAgoraCallManager.swift in Sources */,
+				D010 /* FakePushKitManager.swift in Sources */,
+				D011 /* CallCoordinatorTests.swift in Sources */,
+				D012 /* AudioFramePipelineTests.swift in Sources */,
+				D013 /* PushPayloadParsingTests.swift in Sources */,
+				D014 /* TelemetryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,6 +579,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -602,6 +631,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -630,6 +660,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
