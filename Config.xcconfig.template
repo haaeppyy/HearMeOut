@@ -1,0 +1,10 @@
+// Config.xcconfig.template — copy to Config.xcconfig and fill in.
+//
+// 1. Supabase dashboard > Project Settings > API (Project URL + anon key),
+//    Agora Console > Project > App ID.
+// 2. NEVER put the service-role key or Agora certificate here — those stay
+//    server-side as Edge Function secrets.
+// 3. Config.xcconfig itself is git-ignored; this template is what's committed.
+SUPABASE_URL = https://REPLACE_ME.supabase.co
+SUPABASE_ANON_KEY = REPLACE_ME
+AGORA_APP_ID = REPLACE_ME

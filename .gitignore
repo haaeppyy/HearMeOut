@@ -1,0 +1,17 @@
+# Secrets — Config.xcconfig carries the Supabase anon key + Agora App ID
+# (public client values, but per-install: keep them out of the repo).
+# Copy Config.xcconfig.template → Config.xcconfig and fill in.
+Config.xcconfig
+
+# CocoaPods — reinstall via `pod install` (Podfile + Podfile.lock ARE committed).
+Pods/
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# Local test env (backend suite)
+/tmp/
