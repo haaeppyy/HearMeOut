@@ -139,4 +139,106 @@ struct CallAPIClientTests {
         #expect(hit.id == "u-9")
         #expect(hit.displayName == "Priya")
     }
+
+    // MARK: - transport paths (same serialized suite: shared static handler)
+
+    private func client(
+        handler: ((URLRequest) throws -> (Int, [String: Any]))?,
+        tokenProvider: @escaping () async throws -> String = { "test-jwt" }
+    ) -> CallAPIClient {
+        MockURLProtocol.handler = handler
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        var client = CallAPIClient(tokenProvider: tokenProvider)
+        client.baseURL = URL(string: "https://test.invalid")!
+        client.anonKey = "test-anon"
+        client.session = URLSession(configuration: config)
+        return client
+    }
+
+    /// Lock-guarded request capture: the protocol stub runs on the session's
+    /// queue, not the test's thread.
+    private final class CaptureBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var requests: [URLRequest] = []
+        func append(_ request: URLRequest) {
+            lock.lock(); defer { lock.unlock() }
+            requests.append(request)
+        }
+        var last: URLRequest? {
+            lock.lock(); defer { lock.unlock() }
+            return requests.last
+        }
+    }
+
+    @Test("throwing token provider propagates raw (not wrapped in .network)")
+    func tokenProviderPassthrough() async {
+        struct Boom: Error {}
+        let client = client(handler: nil, tokenProvider: { throw Boom() })
+        do {
+            _ = try await client.fetchHistory()
+            Issue.record("expected throw")
+        } catch is Boom {
+            // send() awaits the provider outside its do/catch — the raw
+            // error (e.g. unauthorized from a dead session) reaches callers.
+        } catch {
+            Issue.record("wrong error type: \(error)")
+        }
+    }
+
+    @Test("throwing session becomes .network")
+    func sessionThrowIsNetwork() async {
+        struct Offline: Error {}
+        let client = client(handler: { _ in throw Offline() })
+        await assertThrows({ try await client.startCall(calleeId: "x") }) {
+            if case .network = $0 { return true }
+            return false
+        }
+    }
+
+    @Test("200 with undecodable body becomes .decoding")
+    func badBodyIsDecoding() async {
+        let client = client(handler: { _ in (200, ["wrong": "shape"]) })
+        await assertThrows({ try await client.startCall(calleeId: "x") }) {
+            if case .decoding = $0 { return true }
+            return false
+        }
+    }
+
+    @Test("fetchHistory clamps limit and encodes before")
+    func historyQuery() async throws {
+        let box = CaptureBox()
+        let client = client(handler: { request in
+            box.append(request)
+            return (200, ["calls": []])
+        })
+
+        _ = try await client.fetchHistory()
+        #expect(box.last?.url?.absoluteString.contains("limit=50") == true)
+
+        _ = try await client.fetchHistory(limit: 500)
+        #expect(box.last?.url?.absoluteString.contains("limit=100") == true)
+
+        _ = try await client.fetchHistory(limit: 0)
+        #expect(box.last?.url?.absoluteString.contains("limit=1") == true)
+
+        _ = try await client.fetchHistory(before: Date(timeIntervalSince1970: 1_700_000_000))
+        let url = box.last?.url?.absoluteString ?? ""
+        #expect(url.contains("limit=50"))
+        #expect(url.contains("before="))
+    }
+
+    @Test("push-token ok:false throws .server, ok:true succeeds silently")
+    func pushTokenBranches() async throws {
+        let failing = client(handler: { _ in (200, ["ok": false]) })
+        await assertThrows({ try await failing.registerPushToken("tok") }) {
+            if case .server(let message, let status) = $0 {
+                return status == 200 && message == "Failed to store push token"
+            }
+            return false
+        }
+
+        let passing = client(handler: { _ in (200, ["ok": true]) })
+        try await passing.registerPushToken("tok")
+    }
 }

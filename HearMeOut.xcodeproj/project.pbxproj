@@ -45,6 +45,8 @@
 		D003 /* PhoneNormalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D112 /* PhoneNormalizationTests.swift */; };
 		D004 /* RecentCallMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D113 /* RecentCallMappingTests.swift */; };
 		D005 /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D114 /* RepositoryTests.swift */; };
+		D006 /* ActiveCallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D115 /* ActiveCallTests.swift */; };
+		D007 /* MigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D116 /* MigrationTests.swift */; };
 		E001 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E110 /* OnboardingTests.swift */; };
 		E002 /* TabsAndKeypadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E111 /* TabsAndKeypadTests.swift */; };
 /* End PBXBuildFile section */
@@ -95,6 +97,8 @@
 		D112 /* PhoneNormalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneNormalizationTests.swift; sourceTree = "<group>"; };
 		D113 /* RecentCallMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentCallMappingTests.swift; sourceTree = "<group>"; };
 		D114 /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
+		D115 /* ActiveCallTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveCallTests.swift; sourceTree = "<group>"; };
+		D116 /* MigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationTests.swift; sourceTree = "<group>"; };
 		E110 /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		E111 /* TabsAndKeypadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabsAndKeypadTests.swift; sourceTree = "<group>"; };
 		C100 /* HearMeOutTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HearMeOutTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -181,6 +185,8 @@
 				D112 /* PhoneNormalizationTests.swift */,
 				D113 /* RecentCallMappingTests.swift */,
 				D114 /* RepositoryTests.swift */,
+				D115 /* ActiveCallTests.swift */,
+				D116 /* MigrationTests.swift */,
 			);
 			path = HearMeOutTests;
 			sourceTree = "<group>";
@@ -453,6 +459,8 @@
 				D003 /* PhoneNormalizationTests.swift in Sources */,
 				D004 /* RecentCallMappingTests.swift in Sources */,
 				D005 /* RepositoryTests.swift in Sources */,
+				D006 /* ActiveCallTests.swift in Sources */,
+				D007 /* MigrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
