@@ -1,0 +1,45 @@
+{
+  "configurations" : [
+    {
+      "buildConfiguration" : "Debug",
+      "name" : "Debug",
+      "testTargets" : [
+        {
+          "skippedTests" : [
+            "HearMeOutTests/TranscriptStoreTests"
+          ],
+          "targetName" : "HearMeOutTests"
+        }
+      ]
+    },
+    {
+      "buildConfiguration" : "Release",
+      "name" : "Release",
+      "testTargets" : [
+        {
+          "skippedTests" : [
+            "HearMeOutTests/TranscriptStoreTests"
+          ],
+          "targetName" : "HearMeOutTests"
+        }
+      ]
+    }
+  ],
+  "identifier" : "HearMeOut-Unit",
+  "name" : "HearMeOut-Unit",
+  "options" : {
+    "defaultOptions" : {
+      "testLanguage" : "en-US",
+      "testRegion" : "US",
+      "uiMode" : "headless"
+    }
+  },
+  "testTargets" : [
+    {
+      "skippedTests" : [
+        "HearMeOutTests/TranscriptStoreTests"
+      ],
+      "targetName" : "HearMeOutTests"
+    }
+  ]
+}

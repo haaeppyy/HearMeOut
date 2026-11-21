@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "buildConfiguration" : "Debug",
+      "name" : "Debug",
+      "testTargets" : [
+        {
+          "targetName" : "HearMeOutUITests"
+        }
+      ]
+    },
+    {
+      "buildConfiguration" : "Release",
+      "name" : "Release",
+      "testTargets" : [
+        {
+          "targetName" : "HearMeOutUITests"
+        }
+      ]
+    }
+  ],
+  "identifier" : "HearMeOut-UIStaging",
+  "name" : "HearMeOut-UIStaging",
+  "options" : {
+    "defaultOptions" : {
+      "testLanguage" : "en-US",
+      "testRegion" : "US",
+      "uiMode" : "headless"
+    }
+  },
+  "testTargets" : [
+    {
+      "targetName" : "HearMeOutUITests"
+    }
+  ]
+}

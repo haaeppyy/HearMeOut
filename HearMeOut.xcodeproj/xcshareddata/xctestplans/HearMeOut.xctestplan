@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "buildConfiguration" : "Debug",
+      "name" : "Debug",
+      "testTargets" : [
+        {
+          "targetName" : "HearMeOutTests"
+        }
+      ]
+    },
+    {
+      "buildConfiguration" : "Release",
+      "name" : "Release",
+      "testTargets" : [
+        {
+          "targetName" : "HearMeOutTests"
+        }
+      ]
+    }
+  ],
+  "identifier" : "HearMeOut",
+  "name" : "HearMeOut",
+  "options" : {
+    "defaultOptions" : {
+      "testLanguage" : "en-US",
+      "testRegion" : "US",
+      "uiMode" : "headless"
+    }
+  },
+  "testTargets" : [
+    {
+      "targetName" : "HearMeOutTests"
+    }
+  ]
+}
