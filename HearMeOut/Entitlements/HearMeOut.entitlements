@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Push Notifications entitlement. Without it the app cannot receive APNs
+	  VoIP pushes, so incoming calls never ring on a device. The value has to
+	  match the backend's APNS_ENVIRONMENT secret: "development" for an Xcode
+	  development build, "production" for TestFlight / App Store.
+
+	  "aps-environment" is normally injected by Xcode from the Push
+	  Notifications capability, so if Signing & Capabilities already has that
+	  capability enabled for dev.echo.EchoSign, Xcode will overwrite this file
+	  with the correct value for the build being signed.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>
