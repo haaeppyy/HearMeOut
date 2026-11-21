@@ -1,0 +1,7 @@
+# test-env.sh — LOCAL-ONLY credentials for the contract suite. NEVER COMMIT.
+# Copy: cp test-env.sh.template test-env.sh  (this file is git-ignored)
+#
+# Local stack:  eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' | sed -e 's/API_URL=/BASE=/' -e 's/ANON_KEY=/ANON=/')"
+# Staging:      export BASE="https://<ref>.supabase.co" ANON="<anon key>"
+export BASE="http://127.0.0.1:54321"
+export ANON="REPLACE_WITH_LOCAL_ANON_KEY"
